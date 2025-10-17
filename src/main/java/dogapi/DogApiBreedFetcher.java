@@ -4,6 +4,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -17,6 +18,10 @@ import java.util.*;
 public class DogApiBreedFetcher implements BreedFetcher {
     private final OkHttpClient client = new OkHttpClient();
 
+    private final static String MESSAGE = "message";
+    private final static String STATUS = "status";
+    private final static String API_URL = "https://dog.ceo/api/";
+
     /**
      * Fetch the list of sub breeds for the given breed from the dog.ceo API.
      * @param breed the breed to fetch sub breeds for
@@ -25,11 +30,37 @@ public class DogApiBreedFetcher implements BreedFetcher {
      */
     @Override
     public List<String> getSubBreeds(String breed) {
-        // TODO Task 1: Complete this method based on its provided documentation
-        //      and the documentation for the dog.ceo API. You may find it helpful
-        //      to refer to the examples of using OkHttpClient from the last lab,
-        //      as well as the code for parsing JSON responses.
-        // return statement included so that the starter code can compile and run.
-        return new ArrayList<>();
+
+        String url = API_URL + "breed/" + breed + "/list";
+
+        final OkHttpClient client = new OkHttpClient();
+        Request request = new Request.Builder()
+                 .url(url)
+                 .build();
+
+        try{
+            Response response = client.newCall(request).execute();
+            if (!response.isSuccessful()){
+                throw new BreedNotFoundException(breed);
+            }
+
+            JSONObject responseBody = new JSONObject(response.body().string());
+
+            if (!responseBody.getString(STATUS).equals("success")){
+                    throw new BreedNotFoundException(breed);
+            }
+
+            JSONArray breedJSONArray = responseBody.getJSONArray(MESSAGE);
+            List<String> breedList = new ArrayList<String>();
+            for (int i = 0; i < breedJSONArray.length(); i++){
+                breedList.add(breedJSONArray.getString(i));
+            }
+
+            return breedList;
+
+        }
+        catch (IOException | JSONException event){
+            throw new BreedNotFoundException(breed);
+        }
     }
 }
